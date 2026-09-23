@@ -1,0 +1,34 @@
+services:
+  postgres_twist:
+    image: postgres:16
+    container_name: postgres_twist
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: twist_db
+      POSTGRES_USER: twist_user
+      POSTGRES_PASSWORD: twist_password
+
+    ports:
+      - "5434:5432"
+
+    volumes:
+      - postgres_twist_data:/var/lib/postgresql/data
+
+  pgadmin_twist:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_twist
+    restart: unless-stopped
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+
+    ports:
+      - "8081:80"
+
+    depends_on:
+      - postgres_twist
+
+volumes:
+  postgres_twist_data:
