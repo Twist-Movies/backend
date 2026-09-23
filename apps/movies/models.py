@@ -5,7 +5,6 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Movie(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     provider = models.CharField(max_length=50, default='TMDB')
     provider_movie_id = models.BigIntegerField()
     title = models.CharField(max_length=255)
@@ -38,7 +37,6 @@ class Movie(models.Model):
 
 
 class WatchedMovie(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='watched_movies')
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='watched_by')
     watched_at = models.DateTimeField(auto_now_add=True)
@@ -54,7 +52,6 @@ class WatchedMovie(models.Model):
 
 
 class Watchlist(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='watchlist')
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='in_watchlists')
     added_at = models.DateTimeField(auto_now_add=True)
@@ -72,7 +69,6 @@ class MovieReaction(models.Model):
         LIKE = 'LIKE', 'Like'
         DISLIKE = 'DISLIKE', 'Dislike'
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reactions')
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='reactions')
     reaction = models.CharField(max_length=10, choices=ReactionChoices.choices)
@@ -88,7 +84,6 @@ class MovieReaction(models.Model):
 
 
 class Rating(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ratings')
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='ratings')
     stars = models.SmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
@@ -104,7 +99,6 @@ class Rating(models.Model):
 
 
 class Review(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='reviews')
     content = models.TextField()
@@ -141,7 +135,6 @@ class ReviewLike(models.Model):
 
 
 class Playlist(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='playlists')
     name = models.CharField(max_length=150)
     description = models.CharField(max_length=1000, null=True, blank=True)
@@ -177,7 +170,6 @@ class MovieRequest(models.Model):
         REJECTED = 'REJECTED', 'Rejected'
         DUPLICATE = 'DUPLICATE', 'Duplicate'
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='movie_requests')
     title = models.CharField(max_length=255)
     original_title = models.CharField(max_length=255, null=True, blank=True)

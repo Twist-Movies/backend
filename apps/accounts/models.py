@@ -4,7 +4,6 @@ from django.db import models
 
 
 class User(AbstractUser):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     birth_date = models.DateField(null=True, blank=True)
     avatar_url = models.URLField(max_length=1000, null=True, blank=True)
