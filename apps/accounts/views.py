@@ -17,13 +17,17 @@ class RegisterView(APIView):
 
         return Response(
             {
-                "id": str(user.id),
+                "id": user.id,
                 "username": user.username,
                 "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "birth_date": user.birth_date,
+                "bio": user.bio,
+                "avatar_url": user.avatar_url,
             },
             status=status.HTTP_201_CREATED,
         )
-
 
 class LoginView(APIView):
     def post(self, request):
