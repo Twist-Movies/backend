@@ -14,6 +14,10 @@ from rest_framework_simplejwt.exceptions import TokenError
 
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
+from django.shortcuts import get_object_or_404
+from django.db import IntegrityError
+from .models import Follow, User
+
 @extend_schema(
     tags=['Autenticação'],
     request={'application/json': {'type': 'object', 'properties': {'refresh': {'type': 'string'}}}},
@@ -136,4 +140,39 @@ class MeView(APIView):
             )
 
         request.user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class FollowView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        target = get_object_or_404(User, id=id)
+
+        if target == request.user:
+            return Response(
+                {"error": "Você não pode seguir a si mesmo."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            Follow.objects.create(follower=request.user, following=target)
+        except IntegrityError:
+            return Response(
+                {"error": "Você já segue este usuário."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(status=status.HTTP_201_CREATED)
+
+    def delete(self, request, id):
+        target = get_object_or_404(User, id=id)
+
+        deleted, _ = Follow.objects.filter(follower=request.user, following=target).delete()
+
+        if deleted == 0:
+            return Response(
+                {"error": "Você não segue este usuário."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         return Response(status=status.HTTP_204_NO_CONTENT)
