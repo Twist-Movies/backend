@@ -119,3 +119,21 @@ class MeView(APIView):
 
         user = update_profile(request.user, serializer.validated_data)
         return Response(UserSerializer(user).data)
+    
+    def delete(self, request):
+        username_confirmation = request.data.get('username')
+
+        if not username_confirmation:
+            return Response(
+                {"error": "Informe seu username para confirmar a exclusão."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if username_confirmation != request.user.username:
+            return Response(
+                {"error": "Username não confere."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        request.user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
