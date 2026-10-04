@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
-from .services import register_user, login_user
+from .serializers import RegisterSerializer, LoginSerializer, UpdateProfileSerializer, UserSerializer
+from .services import register_user, login_user, update_profile
 
 from rest_framework.parsers import MultiPartParser, FormParser
 
@@ -111,3 +111,11 @@ class MeView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
+
+    def patch(self, request):
+        serializer = UpdateProfileSerializer(request.user, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user = update_profile(request.user, serializer.validated_data)
+        return Response(UserSerializer(user).data)

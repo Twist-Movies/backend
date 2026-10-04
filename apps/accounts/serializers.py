@@ -45,3 +45,18 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'birth_date', 'bio', 'avatar_url']
         read_only_fields = fields
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(
+        required=False, allow_null=True, write_only=True,
+        validators=[validate_avatar_file],
+    )
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'birth_date', 'bio', 'avatar']
+
+    def validate_birth_date(self, value):
+        if value and value > timezone.now().date():
+            raise serializers.ValidationError("A data de nascimento não pode ser no futuro.")
+        return value

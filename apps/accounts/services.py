@@ -51,3 +51,14 @@ def login_user(identifier, password):
     if user.check_password(password):
         return user
     return None
+
+def update_profile(user, validated_data):
+    avatar = validated_data.pop('avatar', None)
+    if avatar:
+        validated_data['avatar_url'] = upload_avatar(avatar)
+
+    for field, value in validated_data.items():
+        setattr(user, field, value)
+
+    user.save()
+    return user
