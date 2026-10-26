@@ -1,0 +1,1546 @@
+{
+  "info": {
+    "_postman_id": "d6b88457-11e0-566c-933a-83b5d86ddf34",
+    "name": "Twist API",
+    "description": "Coleção da API do Twist.\n\n1. Importe também o ambiente `Twist.local.postman_environment.json` e selecione **Twist - Local**.\n2. Rode **Autenticação → Cadastro** e **Login**: os tokens ficam salvos nas variáveis da coleção.\n3. As demais requisições usam o token automaticamente. Para rodar tudo, use **Run collection**.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Autenticação",
+      "description": "Cadastro, login e renovação do token. O login salva os tokens nas variáveis da coleção.",
+      "item": [
+        {
+          "name": "Cadastro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"user_id\", pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "register"
+              ]
+            },
+            "description": "Cria o usuário `{{username}}`. Envio em multipart/form-data; o avatar é opcional.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "username",
+                  "value": "{{username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "{{username}}@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{password}}",
+                  "type": "text"
+                },
+                {
+                  "key": "birth_date",
+                  "value": "2000-01-15",
+                  "type": "text"
+                },
+                {
+                  "key": "first_name",
+                  "value": "Twist",
+                  "type": "text"
+                },
+                {
+                  "key": "last_name",
+                  "value": "Demo",
+                  "type": "text"
+                },
+                {
+                  "key": "bio",
+                  "value": "Conta de demonstração",
+                  "type": "text",
+                  "disabled": true
+                },
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": [],
+                  "disabled": true,
+                  "description": "Opcional: JPEG, PNG ou WebP até 5MB"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"access_token\", pm.response.json().access); }",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"refresh_token\", pm.response.json().refresh); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/login/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "login"
+              ]
+            },
+            "description": "`identifier` aceita e-mail ou username. Salva `access_token` e `refresh_token`.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Renovar token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"access_token\", pm.response.json().access); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/token/refresh/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "token",
+                "refresh"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Usuários",
+      "description": "Perfil do usuário logado e seguidores.",
+      "item": [
+        {
+          "name": "Meu perfil",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Editar perfil",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Todos os campos são opcionais: username, email, first_name, last_name, birth_date, bio, avatar.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Fã de ficção científica.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cadastrar outro usuário (para seguir)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"other_user_id\", pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/register/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "register"
+              ]
+            },
+            "description": "Cria um segundo usuário e salva o id em `other_user_id`.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "username",
+                  "value": "amigo_{{$timestamp}}",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "amigo_{{$timestamp}}@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{password}}",
+                  "type": "text"
+                },
+                {
+                  "key": "birth_date",
+                  "value": "1999-05-20",
+                  "type": "text"
+                },
+                {
+                  "key": "first_name",
+                  "value": "Amigo",
+                  "type": "text"
+                },
+                {
+                  "key": "last_name",
+                  "value": "Twist",
+                  "type": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seguir usuário",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{other_user_id}}/follow/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{other_user_id}}",
+                "follow"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seguidores",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{other_user_id}}/followers/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{other_user_id}}",
+                "followers"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seguindo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/following/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{user_id}}",
+                "following"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deixar de seguir",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{other_user_id}}/follow/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{other_user_id}}",
+                "follow"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Filmes",
+      "description": "`{{tmdb_id}}` é o id do filme no TMDB (603 = Matrix). O filme é salvo localmente na primeira interação.",
+      "item": [
+        {
+          "name": "Buscar filmes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/movies/search/?q=matrix&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "matrix"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Detalhes do filme",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}"
+              ]
+            },
+            "description": "Público. Com token, `user_state` traz assistido, watchlist, reação e nota do usuário."
+          },
+          "response": []
+        },
+        {
+          "name": "Marcar como assistido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/watch/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}",
+                "watch"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remover de assistidos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/watch/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}",
+                "watch"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Adicionar ao Quero assistir",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/watchlist/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}",
+                "watchlist"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remover do Quero assistir",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/watchlist/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}",
+                "watchlist"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Avaliar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/rating/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}",
+                "rating"
+              ]
+            },
+            "description": "Nota inteira de 1 a 5. PUT e PATCH fazem o mesmo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stars\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remover avaliação",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/rating/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}",
+                "rating"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Curtir ou dar deslike",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/reaction/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}",
+                "reaction"
+              ]
+            },
+            "description": "`LIKE` ou `DISLIKE`. Enviar o outro valor troca a reação.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reaction\": \"LIKE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remover reação",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/reaction/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}",
+                "reaction"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Resenhas",
+      "description": "Uma resenha ativa por usuário e filme. Só o autor edita ou exclui.",
+      "item": [
+        {
+          "name": "Criar resenha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"review_id\", pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/reviews/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}",
+                "reviews"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Um clássico da ficção científica.\",\n  \"contains_spoiler\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resenhas do filme",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/movies/{{tmdb_id}}/reviews/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "movies",
+                "{{tmdb_id}}",
+                "reviews"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar resenha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reviews/{{review_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reviews",
+                "{{review_id}}"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Editar resenha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/reviews/{{review_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reviews",
+                "{{review_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Revendo: continua genial.\",\n  \"contains_spoiler\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Curtir resenha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reviews/{{review_id}}/like/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reviews",
+                "{{review_id}}",
+                "like"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remover curtida",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reviews/{{review_id}}/like/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reviews",
+                "{{review_id}}",
+                "like"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Excluir resenha",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reviews/{{review_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reviews",
+                "{{review_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Playlists",
+      "description": "Playlist privada só aparece para o dono. Só o dono edita, exclui e altera os filmes.",
+      "item": [
+        {
+          "name": "Criar playlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"playlist_id\", pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/playlists/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "playlists"
+              ]
+            },
+            "description": "Para enviar capa, troque o body para form-data e adicione o campo `cover` (arquivo).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ficção científica\",\n  \"description\": \"Os melhores do gênero\",\n  \"is_public\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Minhas playlists",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/playlists/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "playlists"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Adicionar filme",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/playlists/{{playlist_id}}/movies/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "playlists",
+                "{{playlist_id}}",
+                "movies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tmdb_id\": \"{{tmdb_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Adicionar outro filme",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/playlists/{{playlist_id}}/movies/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "playlists",
+                "{{playlist_id}}",
+                "movies"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tmdb_id\": \"{{second_tmdb_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Detalhes da playlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/playlists/{{playlist_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "playlists",
+                "{{playlist_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Editar playlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/playlists/{{playlist_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "playlists",
+                "{{playlist_id}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sci-fi favoritos\",\n  \"is_public\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remover filme",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/playlists/{{playlist_id}}/movies/{{second_tmdb_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "playlists",
+                "{{playlist_id}}",
+                "movies",
+                "{{second_tmdb_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Excluir playlist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/playlists/{{playlist_id}}/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "playlists",
+                "{{playlist_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sessão e conta",
+      "description": "Logout e exclusão da conta. Ficam por último para a coleção poder ser rodada inteira de novo.",
+      "item": [
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/logout/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "logout"
+              ]
+            },
+            "description": "Revoga o refresh token. O access token continua válido até expirar.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Excluir conta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/me/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Irreversível. Confirme com o próprio username.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "username",
+      "value": "twist_demo"
+    },
+    {
+      "key": "password",
+      "value": "Tw1st!Senha#Forte"
+    },
+    {
+      "key": "tmdb_id",
+      "value": "603"
+    },
+    {
+      "key": "second_tmdb_id",
+      "value": "157336"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    },
+    {
+      "key": "user_id",
+      "value": ""
+    },
+    {
+      "key": "other_user_id",
+      "value": ""
+    },
+    {
+      "key": "review_id",
+      "value": ""
+    },
+    {
+      "key": "playlist_id",
+      "value": ""
+    }
+  ]
+}

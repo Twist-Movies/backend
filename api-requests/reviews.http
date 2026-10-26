@@ -1,0 +1,59 @@
+# Resenhas — /api/movies/{tmdb_id}/reviews/ e /api/reviews/{id}/
+
+@baseUrl = http://localhost:8000/api
+@tmdbId = 603
+
+### Login
+# @name login
+POST {{baseUrl}}/accounts/login/
+Content-Type: application/json
+
+{
+  "identifier": "twist_demo",
+  "password": "Tw1st!Senha#Forte"
+}
+
+###
+@accessToken = {{login.response.body.access}}
+
+### Criar resenha (uma resenha ativa por usuário e filme)
+# @name createReview
+POST {{baseUrl}}/movies/{{tmdbId}}/reviews/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "Um clássico da ficção científica.",
+  "contains_spoiler": false
+}
+
+###
+@reviewId = {{createReview.response.body.id}}
+
+### Resenhas do filme (público, paginado)
+GET {{baseUrl}}/movies/{{tmdbId}}/reviews/
+
+### Consultar resenha (público)
+GET {{baseUrl}}/reviews/{{reviewId}}/
+
+### Editar resenha (só o autor)
+PATCH {{baseUrl}}/reviews/{{reviewId}}/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "content": "Revendo: continua genial.",
+  "contains_spoiler": true
+}
+
+### Curtir resenha
+POST {{baseUrl}}/reviews/{{reviewId}}/like/
+Authorization: Bearer {{accessToken}}
+
+### Remover curtida
+DELETE {{baseUrl}}/reviews/{{reviewId}}/like/
+Authorization: Bearer {{accessToken}}
+
+### Excluir resenha (só o autor)
+DELETE {{baseUrl}}/reviews/{{reviewId}}/
+Authorization: Bearer {{accessToken}}

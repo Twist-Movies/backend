@@ -1,0 +1,67 @@
+# Filmes — /api/movies/
+# {tmdb_id} é o id do filme no TMDB (o mesmo que vem na busca). 603 = Matrix.
+
+@baseUrl = http://localhost:8000/api
+@tmdbId = 603
+
+### Login
+# @name login
+POST {{baseUrl}}/accounts/login/
+Content-Type: application/json
+
+{
+  "identifier": "twist_demo",
+  "password": "Tw1st!Senha#Forte"
+}
+
+###
+@accessToken = {{login.response.body.access}}
+
+### Buscar filmes no TMDB (público)
+GET {{baseUrl}}/movies/search/?q=matrix&page=1
+
+### Detalhes do filme (público; com token, inclui o estado do usuário em user_state)
+GET {{baseUrl}}/movies/{{tmdbId}}/
+Authorization: Bearer {{accessToken}}
+
+### Marcar como assistido
+POST {{baseUrl}}/movies/{{tmdbId}}/watch/
+Authorization: Bearer {{accessToken}}
+
+### Remover de assistidos
+DELETE {{baseUrl}}/movies/{{tmdbId}}/watch/
+Authorization: Bearer {{accessToken}}
+
+### Adicionar à lista "Quero assistir"
+POST {{baseUrl}}/movies/{{tmdbId}}/watchlist/
+Authorization: Bearer {{accessToken}}
+
+### Remover da lista "Quero assistir"
+DELETE {{baseUrl}}/movies/{{tmdbId}}/watchlist/
+Authorization: Bearer {{accessToken}}
+
+### Avaliar (1 a 5 estrelas; PUT e PATCH fazem o mesmo)
+PUT {{baseUrl}}/movies/{{tmdbId}}/rating/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "stars": 5
+}
+
+### Remover avaliação
+DELETE {{baseUrl}}/movies/{{tmdbId}}/rating/
+Authorization: Bearer {{accessToken}}
+
+### Curtir (LIKE) ou dar deslike (DISLIKE)
+PUT {{baseUrl}}/movies/{{tmdbId}}/reaction/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "reaction": "LIKE"
+}
+
+### Remover reação
+DELETE {{baseUrl}}/movies/{{tmdbId}}/reaction/
+Authorization: Bearer {{accessToken}}

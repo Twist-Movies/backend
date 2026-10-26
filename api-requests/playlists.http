@@ -1,0 +1,75 @@
+# Playlists — /api/playlists/
+
+@baseUrl = http://localhost:8000/api
+
+### Login
+# @name login
+POST {{baseUrl}}/accounts/login/
+Content-Type: application/json
+
+{
+  "identifier": "twist_demo",
+  "password": "Tw1st!Senha#Forte"
+}
+
+###
+@accessToken = {{login.response.body.access}}
+
+### Criar playlist (para enviar capa, use multipart/form-data com o campo "cover")
+# @name createPlaylist
+POST {{baseUrl}}/playlists/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Ficção científica",
+  "description": "Os melhores do gênero",
+  "is_public": true
+}
+
+###
+@playlistId = {{createPlaylist.response.body.id}}
+
+### Minhas playlists
+GET {{baseUrl}}/playlists/
+Authorization: Bearer {{accessToken}}
+
+### Adicionar filme (tmdb_id do TMDB; 603 = Matrix)
+POST {{baseUrl}}/playlists/{{playlistId}}/movies/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "tmdb_id": 603
+}
+
+### Adicionar outro filme (157336 = Interestelar)
+POST {{baseUrl}}/playlists/{{playlistId}}/movies/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "tmdb_id": 157336
+}
+
+### Detalhes da playlist com os filmes (pública: qualquer um vê; privada: só o dono)
+GET {{baseUrl}}/playlists/{{playlistId}}/
+Authorization: Bearer {{accessToken}}
+
+### Editar playlist (só o dono)
+PATCH {{baseUrl}}/playlists/{{playlistId}}/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Sci-fi favoritos",
+  "is_public": false
+}
+
+### Remover filme da playlist
+DELETE {{baseUrl}}/playlists/{{playlistId}}/movies/157336/
+Authorization: Bearer {{accessToken}}
+
+### Excluir playlist (só o dono)
+DELETE {{baseUrl}}/playlists/{{playlistId}}/
+Authorization: Bearer {{accessToken}}

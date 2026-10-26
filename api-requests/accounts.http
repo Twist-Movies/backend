@@ -1,0 +1,66 @@
+# Autenticação — /api/accounts/
+
+@baseUrl = http://localhost:8000/api
+@password = Tw1st!Senha#Forte
+
+### Cadastro (multipart/form-data; o campo avatar é opcional)
+# @name register
+POST {{baseUrl}}/accounts/register/
+Content-Type: multipart/form-data; boundary=TwistBoundary
+
+--TwistBoundary
+Content-Disposition: form-data; name="username"
+
+twist_demo
+--TwistBoundary
+Content-Disposition: form-data; name="email"
+
+twist_demo@example.com
+--TwistBoundary
+Content-Disposition: form-data; name="password"
+
+{{password}}
+--TwistBoundary
+Content-Disposition: form-data; name="birth_date"
+
+2000-01-15
+--TwistBoundary
+Content-Disposition: form-data; name="first_name"
+
+Twist
+--TwistBoundary
+Content-Disposition: form-data; name="last_name"
+
+Demo
+--TwistBoundary--
+
+### Login (identifier aceita e-mail ou username)
+# @name login
+POST {{baseUrl}}/accounts/login/
+Content-Type: application/json
+
+{
+  "identifier": "twist_demo",
+  "password": "{{password}}"
+}
+
+###
+@accessToken = {{login.response.body.access}}
+@refreshToken = {{login.response.body.refresh}}
+
+### Renovar o access token
+POST {{baseUrl}}/accounts/token/refresh/
+Content-Type: application/json
+
+{
+  "refresh": "{{refreshToken}}"
+}
+
+### Logout (revoga o refresh token)
+POST {{baseUrl}}/accounts/logout/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "refresh": "{{refreshToken}}"
+}
