@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from apps.common.storage import upload_image
 from apps.common.validators import validate_image_file
-
+from django.utils import timezone
 from .models import Playlist, Movie, MovieReaction
 
 
@@ -40,6 +40,31 @@ class PlaylistSerializer(serializers.ModelSerializer):
 class MovieSearchQuerySerializer(serializers.Serializer):
     q = serializers.CharField(max_length=200, trim_whitespace=True)
     page = serializers.IntegerField(required=False, default=1, min_value=1, max_value=500)
+
+class MovieDiscoverQuerySerializer(serializers.Serializer):
+    page = serializers.IntegerField(required=False, default=1, min_value=1, max_value=500)
+    sort = serializers.ChoiceField(
+        choices=["popularity", "rating", "release_date"], required=False, default="popularity"
+    )
+    genre = serializers.IntegerField(required=False, min_value=1)
+    decade = serializers.IntegerField(required=False, min_value=1880)
+    runtime_min = serializers.IntegerField(required=False, min_value=0)
+    runtime_max = serializers.IntegerField(required=False, min_value=0)
+    rating_min = serializers.FloatField(required=False, min_value=0, max_value=10)
+
+    def validate_decade(self, value):
+        if value % 10 != 0:
+            raise serializers.ValidationError("Informe o ano inicial da década (ex.: 1990).")
+        if value > timezone.localdate().year:
+            raise serializers.ValidationError("A década não pode estar no futuro.")
+        return value
+
+    def validate(self, attrs):
+        runtime_min = attrs.get("runtime_min")
+        runtime_max = attrs.get("runtime_max")
+        if runtime_min is not None and runtime_max is not None and runtime_min > runtime_max:
+            raise serializers.ValidationError({"runtime_max": "Deve ser maior ou igual a runtime_min."})
+        return attrs
 
 
 class MovieSummarySerializer(serializers.ModelSerializer):

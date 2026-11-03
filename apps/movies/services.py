@@ -1,11 +1,75 @@
 from django.db.models import Avg, Count, Q
 from django.utils.dateparse import parse_date
-
+from django.utils import timezone
 from . import tmdb
 from .models import Movie, MovieReaction, Rating, WatchedMovie, Watchlist
 
 TMDB_PROVIDER = "TMDB"
 
+DISCOVER_SORTS = {
+    "popularity": "popularity.desc",
+    "rating": "vote_average.desc",
+    "release_date": "primary_release_date.desc",
+}
+
+
+def build_discover_params(filters):
+    """Traduz os filtros do Twist para os parâmetros do /discover/movie do TMDB."""
+    sort = filters.get("sort", "popularity")
+    params = {"sort_by": DISCOVER_SORTS[sort]}
+
+    if sort == "rating":
+        # Sem um mínimo de votos, aparecem filmes obscuros com um único voto nota 10.
+        params["vote_count.gte"] = 300
+    if sort == "release_date":
+        # Sem o limite de hoje, os primeiros resultados seriam filmes ainda não lançados.
+        params["primary_release_date.lte"] = timezone.localdate().isoformat()
+        params["vote_count.gte"] = 20
+
+    if "genre" in filters:
+        params["with_genres"] = filters["genre"]
+
+    if "decade" in filters:
+        year = filters["decade"]
+        decade_end = f"{year + 9}-12-31"
+        params["primary_release_date.gte"] = f"{year}-01-01"
+        # Datas ISO comparam corretamente como texto: vale o menor entre o fim da década e hoje.
+        params["primary_release_date.lte"] = min(
+            decade_end, params.get("primary_release_date.lte", decade_end)
+        )
+
+    if "runtime_min" in filters:
+        params["with_runtime.gte"] = filters["runtime_min"]
+    if "runtime_max" in filters:
+        params["with_runtime.lte"] = filters["runtime_max"]
+
+    if "rating_min" in filters:
+        params["vote_average.gte"] = filters["rating_min"]
+        params.setdefault("vote_count.gte", 100)
+
+    return params
+
+
+def serialize_search_page(data):
+    """Formato de resposta compartilhado pela busca e pelo discover (os cartões do front são os mesmos)."""
+    return {
+        "page": data.get("page", 1),
+        "total_pages": data.get("total_pages", 0),
+        "total_results": data.get("total_results", 0),
+        "results": [
+            {
+                "tmdb_id": item.get("id"),
+                "title": item.get("title"),
+                "original_title": item.get("original_title"),
+                "overview": item.get("overview"),
+                "poster_path": item.get("poster_path"),
+                "backdrop_path": item.get("backdrop_path"),
+                "release_date": item.get("release_date") or None,
+                "tmdb_rating_average": item.get("vote_average"),
+            }
+            for item in data.get("results") or []
+        ],
+    }
 
 def sync_movie(data):
     """Cria ou atualiza o filme local a partir do payload de detalhes do TMDB."""

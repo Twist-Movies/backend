@@ -84,3 +84,6 @@ def search_movies(query, page=1):
 
 def get_movie(tmdb_id):
     return _get(f"/movie/{tmdb_id}", {"append_to_response": "credits,release_dates"})
+
+def discover_movies(params, page=1):
+    return _get("/discover/movie", {**params, "page": page, "include_adult": "false"})

@@ -12,12 +12,19 @@ from .playlist_serializers import PlaylistDetailSerializer
 from .serializers import (
     PlaylistSerializer,
     MovieSearchQuerySerializer,
+    MovieDiscoverQuerySerializer,
     RatingInputSerializer,
     ReactionInputSerializer,
 )
 from . import tmdb
-from .services import build_movie_detail, get_local_movie, get_or_sync_movie, sync_movie
-
+from .services import (
+    build_discover_params,
+    build_movie_detail,
+    get_local_movie,
+    get_or_sync_movie,
+    serialize_search_page,
+    sync_movie,
+)
 
 class PlaylistListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
@@ -92,27 +99,41 @@ class MovieSearchView(APIView):
         except tmdb.TMDBError as exc:
             return tmdb_error_response(exc)
 
-        return Response(
-            {
-                "page": data.get("page", 1),
-                "total_pages": data.get("total_pages", 0),
-                "total_results": data.get("total_results", 0),
-                "results": [
-                    {
-                        "tmdb_id": item.get("id"),
-                        "title": item.get("title"),
-                        "original_title": item.get("original_title"),
-                        "overview": item.get("overview"),
-                        "poster_path": item.get("poster_path"),
-                        "backdrop_path": item.get("backdrop_path"),
-                        "release_date": item.get("release_date") or None,
-                        "tmdb_rating_average": item.get("vote_average"),
-                    }
-                    for item in data.get("results") or []
-                ],
-            }
-        )
+        return Response(serialize_search_page(data))
 
+@extend_schema(
+    tags=['Filmes'],
+    parameters=[
+        OpenApiParameter('page', int, description='Página de resultados (1 a 500, padrão 1)'),
+        OpenApiParameter('sort', str, enum=['popularity', 'rating', 'release_date'],
+                         description='Ordenação (padrão: popularity)'),
+        OpenApiParameter('genre', int, description='ID do gênero no TMDB (ex.: 18 = Drama)'),
+        OpenApiParameter('decade', int, description='Ano inicial da década (ex.: 1990)'),
+        OpenApiParameter('runtime_min', int, description='Duração mínima, em minutos'),
+        OpenApiParameter('runtime_max', int, description='Duração máxima, em minutos'),
+        OpenApiParameter('rating_min', float, description='Nota mínima, de 0 a 10 (escala do TMDB)'),
+    ],
+    responses={
+        200: OpenApiResponse(description='Filmes do catálogo do TMDB, no mesmo formato da busca'),
+        400: OpenApiResponse(description='Parâmetro inválido (erros por campo)'),
+        503: OpenApiResponse(description='TMDB indisponível'),
+    },
+)
+class MovieDiscoverView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        query = MovieDiscoverQuerySerializer(data=request.query_params)
+        if not query.is_valid():
+            return Response(query.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        params = build_discover_params(query.validated_data)
+        try:
+            data = tmdb.discover_movies(params, query.validated_data["page"])
+        except tmdb.TMDBError as exc:
+            return tmdb_error_response(exc)
+
+        return Response(serialize_search_page(data))
 
 @extend_schema(
     tags=['Filmes'],

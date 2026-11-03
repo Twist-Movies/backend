@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    MovieDiscoverView,
     PlaylistListCreateView,
     PlaylistDetailView,
     MovieDetailView,
@@ -28,5 +29,6 @@ urlpatterns = [
     path("movies/<int:tmdb_id>/reaction/", MovieReactionView.as_view()),
     path("movies/<int:tmdb_id>/reviews/", MovieReviewListCreateView.as_view()),
     path("reviews/<int:pk>/", ReviewDetailView.as_view()),
-    path("reviews/<int:review_id>/like/", ReviewLikeView.as_view()),
+    path("reviews/<int:review_id>/like/", ReviewLikeView.as_view()),   
+    path("movies/discover/", MovieDiscoverView.as_view()),
 ]
