@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'drf_spectacular',
     'rest_framework_simplejwt.token_blacklist',
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -153,3 +155,8 @@ TMDB_BASE_URL = env('TMDB_BASE_URL', default='https://api.themoviedb.org/3')
 TMDB_LANGUAGE = env('TMDB_LANGUAGE', default='pt-BR')
 TMDB_TIMEOUT_SECONDS = env.float('TMDB_TIMEOUT_SECONDS', default=5.0)
 TMDB_CACHE_SECONDS = env.int('TMDB_CACHE_SECONDS', default=60 * 60)
+
+CORS_ALLOWED_ORIGINS = [
+    'https://twist-frontend.onrender.com',
+    'http://localhost:5173',
+]
