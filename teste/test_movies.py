@@ -172,7 +172,7 @@ class MovieDetailTests(APITestCase):
         self.assertEqual(stats["rating_count"], 2)
         self.assertEqual(
             response.data["user_state"],
-            {"watched": True, "in_watchlist": False, "reaction": "LIKE", "rating": 5},
+            {"watched": True, "in_watchlist": False, "reaction": "LIKE", "rating": 5.0},
         )
 
     @patch("apps.movies.tmdb.get_movie", side_effect=tmdb.TMDBNotFound("não existe"))
@@ -245,10 +245,34 @@ class RatingTests(APITestCase):
         self.assertEqual(Rating.objects.count(), 1)
 
     def test_nota_fora_da_escala_retorna_400(self, _):
-        for stars in (0, 6, 3.5, "abc"):
+        for stars in (0, 6, 5.5, 0.7, 0.25, "abc"):
             response = self.client.put(movie_url(550, "rating/"), {"stars": stars}, format="json")
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, stars)
         self.assertFalse(Rating.objects.exists())
+
+    def test_aceita_meia_estrela_e_devolve_float(self, _):
+        response = self.client.put(movie_url(550, "rating/"), {"stars": 4.5}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIsInstance(response.data["stars"], float)
+        self.assertEqual(response.data["stars"], 4.5)
+        self.assertEqual(float(Rating.objects.get(user=self.user).stars), 4.5)
+        for stars in (0.5, 5, 1):
+            ok = self.client.put(movie_url(550, "rating/"), {"stars": stars}, format="json")
+            self.assertEqual(ok.status_code, status.HTTP_200_OK, stars)
+
+    def test_estado_do_usuario_e_media_sao_numeros(self, mock_get_movie):
+        self.client.put(movie_url(550, "rating/"), {"stars": 4.5}, format="json")
+        outro = criar_usuario("outro")
+        self.client.force_authenticate(outro)
+        self.client.put(movie_url(550, "rating/"), {"stars": 3}, format="json")
+
+        response = self.client.get(movie_url(550))
+
+        self.assertEqual(response.data["user_state"]["rating"], 3.0)
+        self.assertIsInstance(response.data["user_state"]["rating"], float)
+        self.assertEqual(response.data["stats"]["rating_average"], 3.75)
+        self.assertIsInstance(response.data["stats"]["rating_average"], float)
 
     def test_remover_avaliacao(self, _):
         self.client.put(movie_url(550, "rating/"), {"stars": 4}, format="json")

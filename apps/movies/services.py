@@ -119,7 +119,7 @@ def movie_stats(movie):
         "likes_count": reactions["likes"],
         "dislikes_count": reactions["dislikes"],
         "watched_count": WatchedMovie.objects.filter(movie=movie).count(),
-        "rating_average": round(average, 2) if average is not None else None,
+        "rating_average": round(float(average), 2) if average is not None else None,
         "rating_count": ratings["count"],
     }
 
@@ -133,7 +133,7 @@ def user_movie_state(user, movie):
         "watched": WatchedMovie.objects.filter(user=user, movie=movie).exists(),
         "in_watchlist": Watchlist.objects.filter(user=user, movie=movie).exists(),
         "reaction": reaction,
-        "rating": stars,
+        "rating": float(stars) if stars is not None else None,
     }
 
 

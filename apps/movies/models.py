@@ -1,7 +1,14 @@
 import uuid
+from decimal import Decimal
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
+
+
+def validate_half_step(value):
+    if (Decimal(value) * 2) % 1 != 0:
+        raise ValidationError('A nota deve ser múltiplo de 0,5.')
 
 
 class Movie(models.Model):
@@ -86,7 +93,11 @@ class MovieReaction(models.Model):
 class Rating(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ratings')
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='ratings')
-    stars = models.SmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    # Múltiplos de 0,5 entre 0,5 e 5 (meia estrela).
+    stars = models.DecimalField(
+        max_digits=2, decimal_places=1,
+        validators=[MinValueValidator(Decimal('0.5')), MaxValueValidator(Decimal('5')), validate_half_step],
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

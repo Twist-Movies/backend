@@ -144,7 +144,7 @@ Quando o access expirar, gere outro em `POST /api/accounts/token/refresh/`. O lo
 | DELETE | `/api/movies/{tmdb_id}/watch/` | sim | Remove de assistidos |
 | POST | `/api/movies/{tmdb_id}/watchlist/` | sim | Adiciona à lista "Quero assistir" |
 | DELETE | `/api/movies/{tmdb_id}/watchlist/` | sim | Remove da lista |
-| PUT/PATCH | `/api/movies/{tmdb_id}/rating/` | sim | Avalia ou altera a nota: `{"stars": 1..5}` |
+| PUT/PATCH | `/api/movies/{tmdb_id}/rating/` | sim | Avalia ou altera a nota: `{"stars": 0.5..5}` (passos de 0,5; sempre devolvido como número, ex. `4.5`) |
 | DELETE | `/api/movies/{tmdb_id}/rating/` | sim | Remove a avaliação |
 | PUT | `/api/movies/{tmdb_id}/reaction/` | sim | Curte ou dá deslike: `{"reaction": "LIKE" \| "DISLIKE"}` |
 | DELETE | `/api/movies/{tmdb_id}/reaction/` | sim | Remove a reação |

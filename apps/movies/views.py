@@ -250,7 +250,7 @@ class UserMovieValueView(APIView):
         201: OpenApiResponse(description='Avaliação criada'),
         200: OpenApiResponse(description='Avaliação alterada'),
         204: OpenApiResponse(description='Avaliação removida'),
-        400: OpenApiResponse(description='Nota fora da escala de 1 a 5 estrelas'),
+        400: OpenApiResponse(description='Nota fora da escala de 0,5 a 5 estrelas (passos de 0,5)'),
         401: OpenApiResponse(description='Não autenticado'),
         404: OpenApiResponse(description='Filme ou avaliação não encontrados'),
     },

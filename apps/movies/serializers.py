@@ -79,7 +79,14 @@ class MovieSummarySerializer(serializers.ModelSerializer):
 
 
 class RatingInputSerializer(serializers.Serializer):
-    stars = serializers.IntegerField(min_value=1, max_value=5)
+    """Nota de 0,5 a 5 estrelas, em passos de 0,5. `stars` é validado como float."""
+
+    stars = serializers.FloatField(min_value=0.5, max_value=5)
+
+    def validate_stars(self, value):
+        if (value * 2) % 1 != 0:
+            raise serializers.ValidationError("A nota deve ser múltiplo de 0,5.")
+        return value
 
 
 class ReactionInputSerializer(serializers.Serializer):
