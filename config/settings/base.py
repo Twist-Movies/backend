@@ -10,8 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 import environ
+from corsheaders.defaults import default_headers
 
 env = environ.Env()
 
@@ -141,6 +143,42 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    # Render tem 1 proxy na frente: o IP do cliente é o último do X-Forwarded-For
+    # (valores forjados pelo cliente, à esquerda, são ignorados).
+    'NUM_PROXIES': env.int('NUM_PROXIES', default=1),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'apps.common.throttling.AnonThrottle',
+        'apps.common.throttling.UserThrottle',
+        'apps.common.throttling.ScopedThrottle',  # só age em views com `throttle_scope`
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': env('THROTTLE_ANON', default='240/min'),            # por IP (anônimos)
+        'user': env('THROTTLE_USER', default='600/min'),            # por usuário autenticado
+        'login': env('THROTTLE_LOGIN', default='20/min'),           # por IP
+        'register': env('THROTTLE_REGISTER', default='5/hour'),     # por IP
+        'tmdb': env('THROTTLE_TMDB', default='120/min'),            # por IP (rotas que chamam o TMDB)
+        'password_reset_request': env('THROTTLE_PASSWORD_RESET_REQUEST', default='5/hour'),
+        'password_reset_confirm': env('THROTTLE_PASSWORD_RESET_CONFIRM', default='10/hour'),
+    },
+}
+
+# Falhas de login por conta (identifier): bloqueia com 429 após N falhas na janela.
+LOGIN_FAILURE_LIMIT = env.int('LOGIN_FAILURE_LIMIT', default=8)
+LOGIN_FAILURE_WINDOW = env.int('LOGIN_FAILURE_WINDOW', default=15 * 60)  # segundos
+
+# Caches: `default` (TMDB) em memória; `ratelimit` (throttles e limite de e-mail do
+# reset) no banco, para o contador valer entre processos/instâncias.
+# Crie a tabela com `python manage.py createcachetable`.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'OPTIONS': {'MAX_ENTRIES': 5000},
+    },
+    'ratelimit': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'twist_ratelimit',
+        'OPTIONS': {'MAX_ENTRIES': 200000, 'CULL_FREQUENCY': 4},
+    },
 }
 
 SPECTACULAR_SETTINGS = {
@@ -156,7 +194,44 @@ TMDB_LANGUAGE = env('TMDB_LANGUAGE', default='pt-BR')
 TMDB_TIMEOUT_SECONDS = env.float('TMDB_TIMEOUT_SECONDS', default=5.0)
 TMDB_CACHE_SECONDS = env.int('TMDB_CACHE_SECONDS', default=60 * 60)
 
-CORS_ALLOWED_ORIGINS = [
-    'https://twist-frontend.onrender.com',
-    'http://localhost:5173',
-]
+# Origens permitidas (lista separada por vírgulas na env). Produção usa outro default.
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:5173'])
+# Necessário para o navegador enviar/receber o cookie HttpOnly do refresh token.
+CORS_ALLOW_CREDENTIALS = True
+# X-Twist-Client: header customizado exigido no refresh/logout via cookie (proteção CSRF).
+CORS_ALLOW_HEADERS = (*default_headers, 'x-twist-client')
+
+# JWT: access curto (fica só em memória no front); refresh de 1 dia, sem rotação
+# (evita corrida entre abas) e revogado via blacklist.
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+}
+
+# Cookie HttpOnly do refresh token. Em produção com front e API em domínios
+# diferentes (cross-site) use REFRESH_COOKIE_SAMESITE=None (exige Secure).
+REFRESH_COOKIE_NAME = env('REFRESH_COOKIE_NAME', default='twist_refresh')
+REFRESH_COOKIE_PATH = '/api/accounts/'
+REFRESH_COOKIE_SECURE = env.bool('REFRESH_COOKIE_SECURE', default=not DEBUG)
+REFRESH_COOKIE_SAMESITE = env('REFRESH_COOKIE_SAMESITE', default='Lax')
+
+# Recuperação de senha / e-mail (Brevo ou Resend; sem chave, imprime no console)
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+PASSWORD_RESET_TIMEOUT = env.int('PASSWORD_RESET_TIMEOUT', default=3600)  # segundos
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Twist <onboarding@resend.dev>')
+RESEND_API_KEY = env('RESEND_API_KEY', default='')
+BREVO_API_KEY = env('BREVO_API_KEY', default='')
+if BREVO_API_KEY:
+    _default_email_backend = 'apps.common.email.BrevoEmailBackend'
+elif RESEND_API_KEY:
+    _default_email_backend = 'apps.common.email.ResendEmailBackend'
+else:
+    _default_email_backend = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = env('EMAIL_BACKEND', default=_default_email_backend)
+# Envia o e-mail de reset em thread daemon (resposta sempre com o mesmo tempo).
+PASSWORD_RESET_EMAIL_ASYNC = env.bool('PASSWORD_RESET_EMAIL_ASYNC', default=not DEBUG)
+
+# Rotas administrativas/documentação
+ADMIN_URL = env('ADMIN_URL', default='admin/')
+ENABLE_DOCS = env.bool('ENABLE_DOCS', default=False)  # Swagger/Redoc também ficam ativos com DEBUG
