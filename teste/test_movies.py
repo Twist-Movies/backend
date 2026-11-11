@@ -136,7 +136,7 @@ class MovieDetailTests(APITestCase):
         self.assertEqual(response.data["id"], movie.id)
         self.assertEqual(response.data["certification"], "18")
         self.assertEqual(response.data["genres"], ["Drama"])
-        self.assertEqual([p["name"] for p in response.data["crew"]], ["David Fincher"])
+        self.assertEqual([p["name"] for p in response.data["crew"]], ["David Fincher", "Jeff"])
         self.assertIsNone(response.data["user_state"])
 
     @patch("apps.movies.tmdb.get_movie")

@@ -1,3 +1,4 @@
+import logging
 from django.shortcuts import render
 from django.db.models import Prefetch, Q
 from rest_framework import generics, status
@@ -13,13 +14,16 @@ from .serializers import (
     PlaylistSerializer,
     MovieSearchQuerySerializer,
     MovieDiscoverQuerySerializer,
+    PageQuerySerializer,
     RatingInputSerializer,
     ReactionInputSerializer,
 )
 from . import tmdb
 from .services import (
+    OFFICIAL_USERNAME,
     build_discover_params,
     build_movie_detail,
+    build_person_detail,
     get_local_movie,
     get_or_sync_movie,
     serialize_search_page,
@@ -60,10 +64,32 @@ class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
         return queryset.filter(is_public=True)
 
 
+class OfficialPlaylistListView(generics.ListAPIView):
+    """Playlists públicas curadas pela conta oficial (staff `twist`)."""
+    permission_classes = [AllowAny]
+    serializer_class = PlaylistSerializer
+
+    def get_queryset(self):
+        return (
+            Playlist.objects
+            .filter(is_public=True, owner__username=OFFICIAL_USERNAME, owner__is_staff=True)
+            .select_related('owner')
+            .order_by('id')
+        )
+
+logger = logging.getLogger(__name__)
+
+
 def tmdb_error_response(exc):
+    """Resposta genérica ao cliente; o detalhe do erro fica só no log do servidor."""
     if isinstance(exc, tmdb.TMDBNotFound):
-        return Response({"error": str(exc)}, status=status.HTTP_404_NOT_FOUND)
-    return Response({"error": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        logger.info("TMDB: recurso não encontrado (%s)", exc)
+        return Response({"error": "Filme não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+    logger.warning("TMDB indisponível: %s", exc)
+    return Response(
+        {"error": "Serviço de filmes indisponível no momento."},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
 
 
 def delete_user_movie_entry(model, user, tmdb_id):
@@ -87,6 +113,7 @@ def delete_user_movie_entry(model, user, tmdb_id):
     },
 )
 class MovieSearchView(APIView):
+    throttle_scope = 'tmdb'
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -120,6 +147,7 @@ class MovieSearchView(APIView):
     },
 )
 class MovieDiscoverView(APIView):
+    throttle_scope = 'tmdb'
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -144,6 +172,7 @@ class MovieDiscoverView(APIView):
     },
 )
 class MovieDetailView(APIView):
+    throttle_scope = 'tmdb'
     permission_classes = [AllowAny]
 
     def get(self, request, tmdb_id):
@@ -154,6 +183,89 @@ class MovieDetailView(APIView):
 
         movie = sync_movie(data)
         return Response(build_movie_detail(data, movie, request.user))
+
+
+@extend_schema(
+    tags=['Filmes'],
+    parameters=[OpenApiParameter('page', int, description='Página de resultados (1 a 500, padrão 1)')],
+    responses={
+        200: OpenApiResponse(description='Filmes recomendados (ou similares), no mesmo formato da busca'),
+        400: OpenApiResponse(description='Parâmetro inválido'),
+        404: OpenApiResponse(description='Filme não encontrado no TMDB'),
+        503: OpenApiResponse(description='TMDB indisponível'),
+    },
+)
+class MovieRecommendationsView(APIView):
+    throttle_scope = 'tmdb'
+    permission_classes = [AllowAny]
+
+    def get(self, request, tmdb_id):
+        query = PageQuerySerializer(data=request.query_params)
+        if not query.is_valid():
+            return Response(query.errors, status=status.HTTP_400_BAD_REQUEST)
+        page = query.validated_data["page"]
+
+        try:
+            data = tmdb.get_recommendations(tmdb_id, page)
+            if not data.get("results"):
+                data = tmdb.get_similar(tmdb_id, page)
+        except tmdb.TMDBError as exc:
+            return tmdb_error_response(exc)
+
+        return Response(serialize_search_page(data))
+
+
+@extend_schema(
+    tags=['Filmes'],
+    parameters=[OpenApiParameter('page', int, description='Página de resultados (1 a 500, padrão 1)')],
+    responses={
+        200: OpenApiResponse(description='Filmes em alta na semana, no mesmo formato da busca'),
+        400: OpenApiResponse(description='Parâmetro inválido'),
+        503: OpenApiResponse(description='TMDB indisponível'),
+    },
+)
+class MovieTrendingView(APIView):
+    throttle_scope = 'tmdb'
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        query = PageQuerySerializer(data=request.query_params)
+        if not query.is_valid():
+            return Response(query.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            data = tmdb.get_trending(query.validated_data["page"])
+        except tmdb.TMDBError as exc:
+            return tmdb_error_response(exc)
+
+        return Response(serialize_search_page(data))
+
+
+@extend_schema(
+    tags=['Filmes'],
+    responses={
+        200: OpenApiResponse(description='Dados da pessoa e até 20 filmes em que atuou, por popularidade'),
+        404: OpenApiResponse(description='Pessoa não encontrada no TMDB'),
+        503: OpenApiResponse(description='TMDB indisponível'),
+    },
+)
+class PersonDetailView(APIView):
+    throttle_scope = 'tmdb'
+    permission_classes = [AllowAny]
+
+    def get(self, request, tmdb_id):
+        try:
+            data = tmdb.get_person(tmdb_id)
+            biography = data.get("biography") or ""
+            if not biography.strip():
+                try:
+                    biography = tmdb.get_person(tmdb_id, language="en-US").get("biography") or ""
+                except tmdb.TMDBError:
+                    biography = ""  # o fallback é opcional
+        except tmdb.TMDBError as exc:
+            return tmdb_error_response(exc)
+
+        return Response(build_person_detail(data, biography))
 
 
 class UserMovieEntryView(APIView):

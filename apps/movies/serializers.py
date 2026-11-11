@@ -41,6 +41,10 @@ class MovieSearchQuerySerializer(serializers.Serializer):
     q = serializers.CharField(max_length=200, trim_whitespace=True)
     page = serializers.IntegerField(required=False, default=1, min_value=1, max_value=500)
 
+class PageQuerySerializer(serializers.Serializer):
+    page = serializers.IntegerField(required=False, default=1, min_value=1, max_value=500)
+
+
 class MovieDiscoverQuerySerializer(serializers.Serializer):
     page = serializers.IntegerField(required=False, default=1, min_value=1, max_value=500)
     sort = serializers.ChoiceField(

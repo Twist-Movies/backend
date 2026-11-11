@@ -2,6 +2,10 @@ from django.urls import path
 
 from .views import (
     MovieDiscoverView,
+    MovieRecommendationsView,
+    MovieTrendingView,
+    OfficialPlaylistListView,
+    PersonDetailView,
     PlaylistListCreateView,
     PlaylistDetailView,
     MovieDetailView,
@@ -12,7 +16,7 @@ from .views import (
     WatchlistView,
 )
 from .playlist_views import PlaylistMovieAddView, PlaylistMovieRemoveView
-from .review_views import MovieReviewListCreateView, ReviewDetailView, ReviewLikeView
+from .review_views import FeedView, UserReviewListView, MovieReviewListCreateView, ReviewDetailView, ReviewLikeView
 
 # O {tmdb_id} das rotas é o identificador do filme no TMDB; o filme local é
 # criado/sincronizado automaticamente na primeira interação.
@@ -31,4 +35,9 @@ urlpatterns = [
     path("reviews/<int:pk>/", ReviewDetailView.as_view()),
     path("reviews/<int:review_id>/like/", ReviewLikeView.as_view()),   
     path("movies/discover/", MovieDiscoverView.as_view()),
+    path("movies/trending/", MovieTrendingView.as_view()),
+    path("movies/<int:tmdb_id>/recommendations/", MovieRecommendationsView.as_view()),
+    path("people/<int:tmdb_id>/", PersonDetailView.as_view()),
+    path("playlists/official/", OfficialPlaylistListView.as_view()),
+    path("feed/", FeedView.as_view()),
 ]
