@@ -1,8 +1,10 @@
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 from django.db.models import Count, Exists, OuterRef, Value
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -13,7 +15,9 @@ from .review_serializers import ReviewSerializer
 from .services import TMDB_PROVIDER, get_or_sync_movie
 from .views import tmdb_error_response
 
-DUPLICATE_REVIEW_ERROR = {"error": "Você já possui uma resenha ativa para este filme."}
+User = get_user_model()
+
+DUPLICATE_REVIEW_ERROR = {"error": "Você já possui um comentário ativo para este filme."}
 
 
 def reviews_queryset(user):
@@ -26,6 +30,37 @@ def reviews_queryset(user):
         liked = ReviewLike.objects.filter(review=OuterRef("pk"), user=user)
         return queryset.annotate(liked_by_me=Exists(liked))
     return queryset.annotate(liked_by_me=Value(False))
+
+
+@extend_schema(
+    tags=['Comentários'],
+    responses={200: ReviewSerializer(many=True), 401: OpenApiResponse(description='Não autenticado')},
+    description='Comentários ativos de quem o usuário segue, dos mais recentes para os mais antigos.',
+)
+class FeedView(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return reviews_queryset(self.request.user).filter(
+            user__followers_set__follower=self.request.user,
+        ).order_by("-created_at", "-id")
+
+
+@extend_schema(
+    tags=['Comentários'],
+    responses={200: ReviewSerializer(many=True), 404: OpenApiResponse(description='Usuário não encontrado')},
+    description='Comentários ativos de um usuário, dos mais recentes para os mais antigos.',
+)
+class UserReviewListView(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        get_object_or_404(User, pk=self.kwargs["id"])
+        return reviews_queryset(self.request.user).filter(
+            user_id=self.kwargs["id"],
+        ).order_by("-created_at", "-id")
 
 
 @extend_schema_view(
