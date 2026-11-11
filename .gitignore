@@ -30,3 +30,6 @@ staticfiles/
 .env
 .env.*
 !.env.example
+# e2e de integração
+e2e_db.sqlite3
+.e2e_mail/
