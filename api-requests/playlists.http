@@ -66,6 +66,9 @@ Content-Type: application/json
   "is_public": false
 }
 
+### Playlists oficiais (conta "twist")
+GET {{baseUrl}}/playlists/official/
+
 ### Remover filme da playlist
 DELETE {{baseUrl}}/playlists/{{playlistId}}/movies/157336/
 Authorization: Bearer {{accessToken}}

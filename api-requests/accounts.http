@@ -46,21 +46,39 @@ Content-Type: application/json
 
 ###
 @accessToken = {{login.response.body.access}}
-@refreshToken = {{login.response.body.refresh}}
+# O refresh token vai num cookie HttpOnly (twist_refresh), mantido pelo cliente HTTP.
+# Cookie + header X-Twist-Client: web. Sem cookie jar, envie {"refresh": "..."} no corpo (fallback).
 
 ### Renovar o access token
 POST {{baseUrl}}/accounts/token/refresh/
 Content-Type: application/json
+X-Twist-Client: web
 
-{
-  "refresh": "{{refreshToken}}"
-}
+{}
 
 ### Logout (revoga o refresh token)
 POST {{baseUrl}}/accounts/logout/
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
+X-Twist-Client: web
+
+{}
+
+
+### Recuperação de senha — solicita o e-mail (sempre 200, exista ou não a conta)
+POST {{baseUrl}}/accounts/password-reset/
+Content-Type: application/json
 
 {
-  "refresh": "{{refreshToken}}"
+  "email": "twist_demo@example.com"
+}
+
+### Recuperação de senha — confirma (uid e token vêm do link: /redefinir-senha/{uid}/{token})
+POST {{baseUrl}}/accounts/password-reset/confirm/
+Content-Type: application/json
+
+{
+  "uid": "COLE_O_UID",
+  "token": "COLE_O_TOKEN",
+  "new_password": "N0va!Senha#Segura9"
 }

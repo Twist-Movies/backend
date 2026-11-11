@@ -62,6 +62,15 @@ Content-Type: application/json
   "reaction": "LIKE"
 }
 
+### Tendências da semana
+GET {{baseUrl}}/movies/trending/?page=1
+
+### Recomendações de um filme
+GET {{baseUrl}}/movies/{{tmdbId}}/recommendations/?page=1
+
+### Pessoa (ator/diretor) pelo id do TMDB
+GET {{baseUrl}}/people/287/
+
 ### Remover reação
 DELETE {{baseUrl}}/movies/{{tmdbId}}/reaction/
 Authorization: Bearer {{accessToken}}
