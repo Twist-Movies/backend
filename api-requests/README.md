@@ -17,5 +17,5 @@ Com o servidor rodando (`python manage.py runserver`):
 | `accounts.http` | cadastro, login, refresh e logout |
 | `users.http` | perfil, seguir/deixar de seguir, seguidores |
 | `movies.http` | busca no TMDB, detalhes, assistido, watchlist, nota e reação |
-| `reviews.http` | resenhas e curtidas |
+| `reviews.http` | comentários e curtidas |
 | `playlists.http` | playlists e filmes da playlist |

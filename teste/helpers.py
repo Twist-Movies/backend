@@ -29,11 +29,13 @@ def tmdb_movie_payload(tmdb_id=550, title="Clube da Luta", **overrides):
         "vote_average": 8.4,
         "vote_count": 30000,
         "genres": [{"id": 18, "name": "Drama"}],
+        "videos": {"results": []},
         "credits": {
-            "cast": [{"name": "Brad Pitt", "character": "Tyler Durden", "profile_path": "/brad.jpg"}],
+            "cast": [{"id": 287, "name": "Brad Pitt", "character": "Tyler Durden", "profile_path": "/brad.jpg"}],
             "crew": [
-                {"name": "David Fincher", "job": "Director", "profile_path": None},
-                {"name": "Fulano", "job": "Catering", "profile_path": None},
+                {"id": 7467, "name": "David Fincher", "job": "Director", "profile_path": None},
+                {"id": 1, "name": "Fulano", "job": "Catering", "profile_path": None},
+                {"id": 2, "name": "Jeff", "job": "Director of Photography", "profile_path": None},
             ],
         },
         "release_dates": {

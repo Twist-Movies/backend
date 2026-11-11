@@ -1,3 +1,4 @@
+from django.db import IntegrityError, transaction
 from django.db.models import Avg, Count, Q
 from django.utils.dateparse import parse_date
 from django.utils import timezone
@@ -5,6 +6,9 @@ from . import tmdb
 from .models import Movie, MovieReaction, Rating, WatchedMovie, Watchlist
 
 TMDB_PROVIDER = "TMDB"
+APPROVAL_MIN_VOTES = 3
+CREW_JOBS = ("Director", "Screenplay", "Writer", "Producer", "Original Music Composer", "Director of Photography")
+OFFICIAL_USERNAME = "twist"
 
 DISCOVER_SORTS = {
     "popularity": "popularity.desc",
@@ -72,28 +76,52 @@ def serialize_search_page(data):
     }
 
 def sync_movie(data):
-    """Cria ou atualiza o filme local a partir do payload de detalhes do TMDB."""
-    movie, _ = Movie.objects.update_or_create(
-        provider=TMDB_PROVIDER,
-        provider_movie_id=data["id"],
-        defaults={
-            "title": data.get("title") or data.get("original_title") or "",
-            "original_title": data.get("original_title"),
-            "overview": data.get("overview") or None,
-            "poster_path": data.get("poster_path"),
-            "backdrop_path": data.get("backdrop_path"),
-            "release_date": parse_date(data.get("release_date") or ""),
-            "runtime_minutes": data.get("runtime") or None,
-            "rating_average": data.get("vote_average"),
-            "rating_count": data.get("vote_count") or 0,
-        },
-    )
+    """Cria ou atualiza o filme local a partir do payload de detalhes do TMDB.
+
+    Só escreve no banco se o filme não existir ou se algum campo mudou.
+    """
+    fields = {
+        "title": data.get("title") or data.get("original_title") or "",
+        "original_title": data.get("original_title"),
+        "overview": data.get("overview") or None,
+        "poster_path": data.get("poster_path"),
+        "backdrop_path": data.get("backdrop_path"),
+        "release_date": parse_date(data.get("release_date") or ""),
+        "runtime_minutes": data.get("runtime") or None,
+        "rating_average": data.get("vote_average"),
+        "rating_count": data.get("vote_count") or 0,
+    }
+    movie = Movie.objects.filter(provider=TMDB_PROVIDER, provider_movie_id=data["id"]).first()
+    if movie is None:
+        try:
+            with transaction.atomic():
+                return Movie.objects.create(provider=TMDB_PROVIDER, provider_movie_id=data["id"], **fields)
+        except IntegrityError:  # criado em paralelo por outra requisição
+            movie = Movie.objects.get(provider=TMDB_PROVIDER, provider_movie_id=data["id"])
+
+    changed = [
+        name for name, value in fields.items()
+        if not _same_value(getattr(movie, name), value)
+    ]
+    if changed:
+        for name in changed:
+            setattr(movie, name, fields[name])
+        movie.save(update_fields=[*changed, "updated_at"])
     return movie
+
+
+def _same_value(current, new):
+    if current == new:
+        return True
+    try:  # DecimalField (rating_average) vs float do TMDB
+        return current is not None and new is not None and round(float(current), 2) == round(float(new), 2)
+    except (TypeError, ValueError):
+        return False
 
 
 def get_or_sync_movie(tmdb_id):
     """Garante que o filme exista no catálogo local (RN02) antes de ser associado
-    a avaliações, resenhas, reações ou playlists.
+    a avaliações, comentários, reações ou playlists.
 
     Lança tmdb.TMDBNotFound se o id não existir no TMDB.
     """
@@ -115,11 +143,15 @@ def movie_stats(movie):
     )
     ratings = Rating.objects.filter(movie=movie).aggregate(average=Avg("stars"), count=Count("id"))
     average = ratings["average"]
+    likes, dislikes = reactions["likes"], reactions["dislikes"]
+    votes = likes + dislikes
     return {
-        "likes_count": reactions["likes"],
-        "dislikes_count": reactions["dislikes"],
+        "likes_count": likes,
+        "dislikes_count": dislikes,
+        "approval_percent": round(likes / votes * 100) if votes >= APPROVAL_MIN_VOTES else None,
+        "approval_votes": votes,
         "watched_count": WatchedMovie.objects.filter(movie=movie).count(),
-        "rating_average": round(average, 2) if average is not None else None,
+        "rating_average": round(float(average), 2) if average is not None else None,
         "rating_count": ratings["count"],
     }
 
@@ -133,7 +165,7 @@ def user_movie_state(user, movie):
         "watched": WatchedMovie.objects.filter(user=user, movie=movie).exists(),
         "in_watchlist": Watchlist.objects.filter(user=user, movie=movie).exists(),
         "reaction": reaction,
-        "rating": stars,
+        "rating": float(stars) if stars is not None else None,
     }
 
 
@@ -146,6 +178,41 @@ def _certification(data):
             if release.get("certification"):
                 return release["certification"]
     return None
+
+
+def pick_trailer(data):
+    """Chave do YouTube do melhor trailer (oficiais primeiro) ou None."""
+    videos = [
+        video for video in (data.get("videos") or {}).get("results") or []
+        if video.get("site") == "YouTube" and video.get("type") == "Trailer" and video.get("key")
+    ]
+    if not videos:
+        return None
+    videos.sort(key=lambda video: not video.get("official"))
+    return videos[0]["key"]
+
+
+def serialize_person(person):
+    return {
+        "id": person.get("id"),
+        "name": person.get("name"),
+        "profile_path": person.get("profile_path"),
+    }
+
+
+def build_person_detail(data, biography):
+    credits = (data.get("movie_credits") or {}).get("cast") or []
+    credits = sorted(credits, key=lambda item: item.get("popularity") or 0, reverse=True)[:20]
+    return {
+        "id": data.get("id"),
+        "name": data.get("name"),
+        "biography": biography,
+        "birthday": data.get("birthday") or None,
+        "place_of_birth": data.get("place_of_birth") or None,
+        "known_for_department": data.get("known_for_department"),
+        "profile_path": data.get("profile_path"),
+        "movies": serialize_search_page({"results": credits})["results"],
+    }
 
 
 def build_movie_detail(data, movie, user):
@@ -162,8 +229,13 @@ def build_movie_detail(data, movie, user):
         "runtime_minutes": movie.runtime_minutes,
         "certification": _certification(data),
         "genres": [genre["name"] for genre in data.get("genres") or []],
+        "genres_info": [
+            {"id": genre.get("id"), "name": genre.get("name")} for genre in data.get("genres") or []
+        ],
+        "trailer": pick_trailer(data),
         "cast": [
             {
+                "id": person.get("id"),
                 "name": person.get("name"),
                 "character": person.get("character"),
                 "profile_path": person.get("profile_path"),
@@ -172,12 +244,13 @@ def build_movie_detail(data, movie, user):
         ],
         "crew": [
             {
+                "id": person.get("id"),
                 "name": person.get("name"),
                 "job": person.get("job"),
                 "profile_path": person.get("profile_path"),
             }
             for person in credits.get("crew") or []
-            if person.get("job") in ("Director", "Screenplay", "Writer", "Producer", "Original Music Composer")
+            if person.get("job") in CREW_JOBS
         ],
         "tmdb_rating_average": movie.rating_average,
         "tmdb_rating_count": movie.rating_count,

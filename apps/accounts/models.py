@@ -1,9 +1,18 @@
 import uuid
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 
 
+class TwistUserManager(UserManager):
+    @classmethod
+    def normalize_email(cls, email):
+        """E-mail inteiro em minúsculas (o padrão do Django só ajusta o domínio)."""
+        return (email or "").strip().lower()
+
+
 class User(AbstractUser):
+    objects = TwistUserManager()
+
     email = models.EmailField(unique=True)
     birth_date = models.DateField(null=True, blank=True)
     avatar_url = models.URLField(max_length=1000, null=True, blank=True)
@@ -17,6 +26,11 @@ class User(AbstractUser):
 
     class Meta:
         db_table = 'users'
+
+    def save(self, *args, **kwargs):
+        if self.email:
+            self.email = self.email.strip().lower()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.username

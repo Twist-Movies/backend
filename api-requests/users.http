@@ -68,11 +68,29 @@ GET {{baseUrl}}/users/{{userId}}/followers/
 ### Quem o usuário segue (público)
 GET {{baseUrl}}/users/{{userId}}/following/
 
-### Excluir a própria conta (irreversível; confirme com o username)
+### Trocar o e-mail (exige a senha atual; encerra todas as sessões e apaga o cookie)
+PATCH {{baseUrl}}/users/me/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "email": "novo@example.com",
+  "current_password": "{{password}}"
+}
+
+### Excluir a própria conta (irreversível; confirme com username e senha)
 DELETE {{baseUrl}}/users/me/
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "username": "twist_demo"
+  "username": "twist_demo",
+  "password": "{{password}}"
 }
+
+
+### Buscar usuários (mín. 2 caracteres)
+GET {{baseUrl}}/users/search/?q=twist
+
+### Comentários de um usuário
+GET {{baseUrl}}/users/1/reviews/

@@ -1,4 +1,4 @@
-# Resenhas — /api/movies/{tmdb_id}/reviews/ e /api/reviews/{id}/
+# Comentários — /api/movies/{tmdb_id}/reviews/ e /api/reviews/{id}/
 
 @baseUrl = http://localhost:8000/api
 @tmdbId = 603
@@ -16,7 +16,7 @@ Content-Type: application/json
 ###
 @accessToken = {{login.response.body.access}}
 
-### Criar resenha (uma resenha ativa por usuário e filme)
+### Criar comentário (um comentário ativo por usuário e filme)
 # @name createReview
 POST {{baseUrl}}/movies/{{tmdbId}}/reviews/
 Authorization: Bearer {{accessToken}}
@@ -30,13 +30,13 @@ Content-Type: application/json
 ###
 @reviewId = {{createReview.response.body.id}}
 
-### Resenhas do filme (público, paginado)
+### Comentários do filme (público, paginado)
 GET {{baseUrl}}/movies/{{tmdbId}}/reviews/
 
-### Consultar resenha (público)
+### Consultar comentário (público)
 GET {{baseUrl}}/reviews/{{reviewId}}/
 
-### Editar resenha (só o autor)
+### Editar comentário (só o autor)
 PATCH {{baseUrl}}/reviews/{{reviewId}}/
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
@@ -46,7 +46,7 @@ Content-Type: application/json
   "contains_spoiler": true
 }
 
-### Curtir resenha
+### Curtir comentário
 POST {{baseUrl}}/reviews/{{reviewId}}/like/
 Authorization: Bearer {{accessToken}}
 
@@ -54,6 +54,11 @@ Authorization: Bearer {{accessToken}}
 DELETE {{baseUrl}}/reviews/{{reviewId}}/like/
 Authorization: Bearer {{accessToken}}
 
-### Excluir resenha (só o autor)
+### Excluir comentário (só o autor)
 DELETE {{baseUrl}}/reviews/{{reviewId}}/
+Authorization: Bearer {{accessToken}}
+
+
+### Feed: comentários de quem sigo
+GET {{baseUrl}}/feed/
 Authorization: Bearer {{accessToken}}

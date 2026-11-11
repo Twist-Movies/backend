@@ -112,8 +112,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"access_token\", pm.response.json().access); }",
-                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"refresh_token\", pm.response.json().refresh); }"
+                  "if (pm.response.code < 300) { pm.collectionVariables.set(\"access_token\", pm.response.json().access); }"
                 ]
               }
             }
@@ -137,7 +136,7 @@
                 "login"
               ]
             },
-            "description": "`identifier` aceita e-mail ou username. Salva `access_token` e `refresh_token`.",
+            "description": "`identifier` aceita e-mail ou username. Salva `access_token`; o refresh token fica no cookie HttpOnly `twist_refresh` (cookie jar do Postman).",
             "auth": {
               "type": "noauth"
             },
@@ -173,6 +172,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "X-Twist-Client",
+                "value": "web"
               }
             ],
             "url": {
@@ -193,6 +196,103 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Recuperar senha - solicitar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/password-reset/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "password-reset"
+              ]
+            },
+            "description": "Sempre retorna 200, exista ou não uma conta com o e-mail. Limite: 5/hora por IP.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{username}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Recuperar senha - confirmar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 2xx\", () => pm.expect(pm.response.code).to.be.within(200, 299));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/accounts/password-reset/confirm/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "accounts",
+                "password-reset",
+                "confirm"
+              ]
+            },
+            "description": "uid e token vêm do link do e-mail (/redefinir-senha/{uid}/{token}). Link inválido/expirado: 400. Limite: 10/hora por IP.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"COLE_O_UID\",\n  \"token\": \"COLE_O_TOKEN\",\n  \"new_password\": \"{{password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -844,11 +944,11 @@
       ]
     },
     {
-      "name": "Resenhas",
-      "description": "Uma resenha ativa por usuário e filme. Só o autor edita ou exclui.",
+      "name": "Comentários",
+      "description": "Um comentário ativo por usuário e filme. Só o autor edita ou exclui.",
       "item": [
         {
-          "name": "Criar resenha",
+          "name": "Criar comentário",
           "event": [
             {
               "listen": "test",
@@ -894,7 +994,7 @@
           "response": []
         },
         {
-          "name": "Resenhas do filme",
+          "name": "Comentários do filme",
           "event": [
             {
               "listen": "test",
@@ -928,7 +1028,7 @@
           "response": []
         },
         {
-          "name": "Consultar resenha",
+          "name": "Consultar comentário",
           "event": [
             {
               "listen": "test",
@@ -961,7 +1061,7 @@
           "response": []
         },
         {
-          "name": "Editar resenha",
+          "name": "Editar comentário",
           "event": [
             {
               "listen": "test",
@@ -1005,7 +1105,7 @@
           "response": []
         },
         {
-          "name": "Curtir resenha",
+          "name": "Curtir comentário",
           "event": [
             {
               "listen": "test",
@@ -1067,7 +1167,7 @@
           "response": []
         },
         {
-          "name": "Excluir resenha",
+          "name": "Excluir comentário",
           "event": [
             {
               "listen": "test",
@@ -1427,6 +1527,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "X-Twist-Client",
+                "value": "web"
               }
             ],
             "url": {
@@ -1440,7 +1544,7 @@
                 "logout"
               ]
             },
-            "description": "Revoga o refresh token. O access token continua válido até expirar.",
+            "description": "Revoga o refresh token (lido do cookie `twist_refresh` via cookie jar, com o header X-Twist-Client) e apaga o cookie. Fallback para clientes sem cookie: envie `{\"refresh\": \"<token>\"}` no corpo. O access token continua válido até expirar.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}",
@@ -1485,7 +1589,7 @@
                 "me"
               ]
             },
-            "description": "Irreversível. Confirme com o próprio username.",
+            "description": "Irreversível. Confirme com o próprio username e a senha atual.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{username}}\"\n}",
@@ -1520,10 +1624,6 @@
     },
     {
       "key": "access_token",
-      "value": ""
-    },
-    {
-      "key": "refresh_token",
       "value": ""
     },
     {

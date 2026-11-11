@@ -66,7 +66,7 @@ class RegisterTests(APITestCase):
         data.update(overrides)
         return data
 
-    @patch("apps.accounts.services.upload_avatar")
+    @patch("apps.accounts.services.upload_image")
     def test_register_sucesso_cria_usuario(self, mock_upload_avatar):
         mock_upload_avatar.return_value = "https://dummy.storage/avatars/fake.png"
 
@@ -196,7 +196,8 @@ class LoginTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertIn("access", response.data)
-        self.assertIn("refresh", response.data)
+        self.assertNotIn("refresh", response.data)
+        self.assertIn("twist_refresh", response.cookies)
         self.assertEqual(response.data["username"], "usuarioteste")
 
     def test_login_sucesso_com_email(self):
@@ -208,7 +209,8 @@ class LoginTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertIn("access", response.data)
-        self.assertIn("refresh", response.data)
+        self.assertNotIn("refresh", response.data)
+        self.assertIn("twist_refresh", response.cookies)
 
     def test_login_falha_senha_errada(self):
         response = self.client.post(
@@ -268,7 +270,7 @@ class TokenRefreshTests(APITestCase):
     def test_refresh_falha_sem_token(self):
         response = self.client.post(TOKEN_REFRESH_URL, {}, format="json")
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class LogoutTests(APITestCase):
@@ -305,14 +307,14 @@ class LogoutTests(APITestCase):
         )
         self.assertEqual(refresh_response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_logout_falha_sem_autenticacao(self):
+    def test_logout_sem_access_valido_revoga_pelo_refresh(self):
         refresh = RefreshToken.for_user(self.user)
 
         response = self.client.post(
             LOGOUT_URL, {"refresh": str(refresh)}, format="json"
         )
 
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_205_RESET_CONTENT)
 
     def test_logout_falha_sem_refresh_no_body(self):
         self._autentica_e_gera_refresh()

@@ -60,7 +60,7 @@ def _get(path, params=None):
         raise TMDBError("Não foi possível se comunicar com o TMDB.") from exc
 
     if response.status_code == 404:
-        raise TMDBNotFound("Filme não encontrado no TMDB.")
+        raise TMDBNotFound("Recurso não encontrado no TMDB.")
     if response.status_code == 429:
         logger.warning("Limite de requisições do TMDB atingido (%s).", path)
         raise TMDBError("Limite de requisições do TMDB atingido. Tente novamente em instantes.")
@@ -83,7 +83,34 @@ def search_movies(query, page=1):
 
 
 def get_movie(tmdb_id):
-    return _get(f"/movie/{tmdb_id}", {"append_to_response": "credits,release_dates"})
+    return _get(
+        f"/movie/{tmdb_id}",
+        {
+            "append_to_response": "credits,release_dates,videos",
+            # Sem isso, só vêm vídeos no idioma da requisição (pt-BR), que quase nunca tem trailer.
+            "include_video_language": "pt,en,null",
+        },
+    )
+
+
+def get_recommendations(tmdb_id, page=1):
+    return _get(f"/movie/{tmdb_id}/recommendations", {"page": page})
+
+
+def get_similar(tmdb_id, page=1):
+    return _get(f"/movie/{tmdb_id}/similar", {"page": page})
+
+
+def get_trending(page=1):
+    return _get("/trending/movie/week", {"page": page})
+
+
+def get_person(person_id, language=None):
+    params = {"append_to_response": "movie_credits"}
+    if language:
+        params["language"] = language
+    return _get(f"/person/{person_id}", params)
+
 
 def discover_movies(params, page=1):
     return _get("/discover/movie", {**params, "page": page, "include_adult": "false"})
