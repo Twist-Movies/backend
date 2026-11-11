@@ -1,5 +1,5 @@
 """
-Testes dos endpoints de resenhas:
+Testes dos endpoints de comentários:
 
     GET/POST     /api/movies/{tmdb_id}/reviews/
     GET/PATCH/DELETE /api/reviews/{id}/
@@ -138,7 +138,9 @@ class ReviewLikeTests(APITestCase):
         self.autor = criar_usuario("autor")
         self.leitor = criar_usuario("leitor")
         self.client.force_authenticate(self.autor)
-        self.review_id = self.client.post(reviews_url(), {"content": "Filmaço."}, format="json").data["id"]
+        # O patch de classe só cobre os métodos test_*, não o setUp.
+        with patch("apps.movies.tmdb.get_movie", side_effect=fake_get_movie):
+            self.review_id = self.client.post(reviews_url(), {"content": "Filmaço."}, format="json").data["id"]
         self.client.force_authenticate(self.leitor)
 
     def test_curtir_resenha_uma_unica_vez(self, _):

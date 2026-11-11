@@ -15,7 +15,7 @@ class ReviewAuthorSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    """Leitura e escrita de resenhas.
+    """Leitura e escrita de comentários.
 
     `likes_count` e `liked_by_me` vêm de anotações do queryset
     (ver review_views.reviews_queryset).

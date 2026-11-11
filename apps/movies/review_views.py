@@ -65,16 +65,16 @@ class UserReviewListView(generics.ListAPIView):
 
 @extend_schema_view(
     get=extend_schema(
-        tags=['Resenhas'],
+        tags=['Comentários'],
         responses={200: ReviewSerializer(many=True)},
-        description='Lista as resenhas ativas do filme, das mais recentes para as mais antigas.',
+        description='Lista os comentários ativos do filme, dos mais recentes para os mais antigos.',
     ),
     post=extend_schema(
-        tags=['Resenhas'],
+        tags=['Comentários'],
         request=ReviewSerializer,
         responses={
             201: ReviewSerializer,
-            400: OpenApiResponse(description='Dados inválidos ou o usuário já possui resenha ativa para o filme'),
+            400: OpenApiResponse(description='Dados inválidos ou o usuário já possui comentário ativo para o filme'),
             401: OpenApiResponse(description='Não autenticado'),
             404: OpenApiResponse(description='Filme não encontrado no TMDB'),
         },
@@ -111,25 +111,25 @@ class MovieReviewListCreateView(generics.ListCreateAPIView):
 
 
 @extend_schema_view(
-    get=extend_schema(tags=['Resenhas'], responses={200: ReviewSerializer, 404: OpenApiResponse(description='Resenha não encontrada')}),
+    get=extend_schema(tags=['Comentários'], responses={200: ReviewSerializer, 404: OpenApiResponse(description='Comentário não encontrado')}),
     patch=extend_schema(
-        tags=['Resenhas'],
+        tags=['Comentários'],
         request=ReviewSerializer,
         responses={
             200: ReviewSerializer,
             400: OpenApiResponse(description='Dados inválidos'),
             401: OpenApiResponse(description='Não autenticado'),
-            403: OpenApiResponse(description='Apenas o autor pode editar a resenha'),
-            404: OpenApiResponse(description='Resenha não encontrada'),
+            403: OpenApiResponse(description='Apenas o autor pode editar o comentário'),
+            404: OpenApiResponse(description='Comentário não encontrado'),
         },
     ),
     delete=extend_schema(
-        tags=['Resenhas'],
+        tags=['Comentários'],
         responses={
-            204: OpenApiResponse(description='Resenha excluída'),
+            204: OpenApiResponse(description='Comentário excluído'),
             401: OpenApiResponse(description='Não autenticado'),
-            403: OpenApiResponse(description='Apenas o autor pode excluir a resenha'),
-            404: OpenApiResponse(description='Resenha não encontrada'),
+            403: OpenApiResponse(description='Apenas o autor pode excluir o comentário'),
+            404: OpenApiResponse(description='Comentário não encontrado'),
         },
     ),
 )
@@ -142,20 +142,20 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
         return reviews_queryset(self.request.user)
 
     def perform_destroy(self, instance):
-        # Exclusão lógica: libera a restrição de uma resenha ativa por filme.
+        # Exclusão lógica: libera a restrição de um comentário ativo por filme.
         instance.is_active = False
         instance.save(update_fields=["is_active", "updated_at"])
 
 
 @extend_schema(
-    tags=['Resenhas'],
+    tags=['Comentários'],
     request=None,
     responses={
-        201: OpenApiResponse(description='Resenha curtida'),
-        200: OpenApiResponse(description='A resenha já estava curtida'),
+        201: OpenApiResponse(description='Comentário curtido'),
+        200: OpenApiResponse(description='O comentário já estava curtido'),
         204: OpenApiResponse(description='Curtida removida'),
         401: OpenApiResponse(description='Não autenticado'),
-        404: OpenApiResponse(description='Resenha ou curtida não encontrada'),
+        404: OpenApiResponse(description='Comentário ou curtida não encontrado'),
     },
 )
 class ReviewLikeView(APIView):
@@ -167,7 +167,7 @@ class ReviewLikeView(APIView):
     def post(self, request, review_id):
         review = self._get_review(review_id)
         if review is None:
-            return Response({"error": "Resenha não encontrada."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Comentário não encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
         _, created = ReviewLike.objects.get_or_create(user=request.user, review=review)
         return Response(
